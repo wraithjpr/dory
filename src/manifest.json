@@ -1,0 +1,26 @@
+{
+
+  "name": "Url tracker extension",
+  "description": "This extension tracks urls.",
+  "version": "1.0.0",
+
+  "background": {
+    "scripts": [
+      "./scripts/background.js"
+    ],
+    "persistent": true
+  },
+
+  "browser_action": {
+    "default_icon": "./images/icon.png",
+    "default_popup": "popup.html"
+  },
+
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+
+  "manifest_version": 2
+}
