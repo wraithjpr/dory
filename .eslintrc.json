@@ -19,13 +19,14 @@
     "linebreak-style": ["error", "windows"],
     "max-len": ["error", 160],
     "max-params": ["error", 4],
-    "max-statements": ["error", 10, { "ignoreTopLevelFunctions": true }],
+    "max-statements": ["error", 15, { "ignoreTopLevelFunctions": true }],
     "multiline-ternary": "off",
     "newline-after-var": ["error", "always"],
     "newline-per-chained-call": ["error", { "ignoreChainWithDepth": 3 }],
     "no-cond-assign": ["error", "always"],
     "no-console": "off",
     "no-inline-comments": "off",
+    "no-lonely-if": "off",
     "no-magic-numbers": [
       "error",
       {
