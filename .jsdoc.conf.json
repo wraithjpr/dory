@@ -1,0 +1,32 @@
+{
+  "opts": {
+    "destination": "./docs/",
+    "encoding": "utf8",
+    "readme": "./README.md",
+    "recurse": true
+  },
+  "tags": {
+    "allowUnknownTags": true
+  },
+  "source": {
+    "include": ["./src"],
+    "exclude": [],
+    "includePattern": ".+\\.js(doc|x)?$",
+    "excludePattern": "(^|\\/|\\\\)_"
+  },
+  "plugins": [
+    "plugins/markdown",
+    "plugins/summarize"
+  ],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": false,
+    "default": {
+        "outputSourceFiles": true
+    }
+  },
+  "markdown": {
+    "tags": ["summary"],
+    "hardwrap": true
+  }
+}

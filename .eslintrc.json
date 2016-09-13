@@ -1,0 +1,62 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "mocha": false,
+    "mongo": false,
+    "node": false
+  },
+  "globals": {
+    "chrome": true
+  },
+  "extends": "eslint:all",
+  "rules": {
+    "comma-dangle": ["error", "never"],
+    "dot-location": ["error", "property"],
+    "func-names": ["error", "never"],
+    "func-style": "off",
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "windows"],
+    "max-len": ["error", 160],
+    "max-params": ["error", 4],
+    "max-statements": ["error", 15, { "ignoreTopLevelFunctions": true }],
+    "multiline-ternary": "off",
+    "newline-after-var": ["error", "always"],
+    "newline-per-chained-call": ["error", { "ignoreChainWithDepth": 3 }],
+    "no-cond-assign": ["error", "always"],
+    "no-console": "off",
+    "no-inline-comments": "off",
+    "no-lonely-if": "off",
+    "no-magic-numbers": [
+      "error",
+      {
+        "detectObjects": true,
+        "enforceConst": true,
+        "ignore": [0, 1],
+        "ignoreArrayIndexes": true
+      }
+    ],
+    "no-negated-condition": "off",
+    "no-ternary": "off",
+    "no-var": "off",
+    "no-void": "off",
+    "object-curly-newline": "off",
+    "object-curly-spacing": ["error", "always"],
+    "one-var": ["error", "never"],
+    "padded-blocks": ["error", "never"],
+    "prefer-arrow-callback": "off",
+    "quote-props": ["error", "consistent-as-needed"],
+    "quotes": ["error", "single"],
+    "require-jsdoc": ["error", {
+        "require": {
+            "FunctionDeclaration": true,
+            "MethodDefinition": true,
+            "ClassDeclaration": true
+        }
+    }],
+    "semi": ["error", "always"],
+    "sort-keys": "off",
+    "strict": ["error", "safe"],
+    "valid-jsdoc": "error"
+  }
+}

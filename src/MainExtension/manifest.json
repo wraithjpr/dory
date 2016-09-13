@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "Main extension",
+  "version": "1.0.0",
+
+  "description": "This extension monitors chromebooks.",
+
+  "browser_action": {
+    "default_icon": "./images/icon.png"
+  },
+
+  "background": {
+    "scripts": ["./scripts/background.js"],
+    "persistent": false
+  },
+
+  "permissions": [
+    "identity",
+    "identity.email"
+  ]
+}

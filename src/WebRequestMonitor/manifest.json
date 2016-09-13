@@ -1,0 +1,21 @@
+{
+
+  "name": "Url tracker extension",
+  "description": "This extension tracks urls in web requests.",
+  "version": "1.0.0",
+
+  "background": {
+    "scripts": [
+      "./scripts/background.js"
+    ],
+    "persistent": true
+  },
+
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+
+  "manifest_version": 2
+}
