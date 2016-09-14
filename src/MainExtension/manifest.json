@@ -10,12 +10,13 @@
   },
 
   "background": {
-    "scripts": ["./scripts/background.js"],
+    "scripts": ["./scripts/web-api-utils.js", "./scripts/background.js"],
     "persistent": false
   },
 
   "permissions": [
     "identity",
-    "identity.email"
+    "identity.email",
+    "http://localhost:3000/"
   ]
 }

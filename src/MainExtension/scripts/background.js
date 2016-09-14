@@ -3,6 +3,7 @@
   'use strict';
 
   const MONITOR_EXTENSION_ID = 'elojbmhgmpdndbpcjnhjckkjfejleelp';
+  const HOST_URL = 'http://localhost:3000/api/events/';
 
 
   let profileUserInfo = null;
@@ -68,6 +69,33 @@
 
   const renderItem = (type, item) => renderInConsole(formatByType[type](item));
 
+  const constructCapture = function (userInfo, message) {
+    return Promise.resolve({
+      captureType: message.type,
+      method: message.payload.method,
+      url: message.payload.url,
+      userEmail: getUserEmail(userInfo),
+      dateTime: formatTimeStamp(message.payload.timeStamp),
+      resourceType: message.payload.type,
+      tabId: message.payload.tabId,
+      requestId: message.payload.requestId
+    });
+  };
+
+  const postJSONCurried = function (url) {
+    return function (body) {
+      return global.$JPW$.webApiUtils.postJSON(url, body);
+    };
+  };
+
+  const sendToHost = postJSONCurried(HOST_URL);
+
+  const logPostResponse = function (response) {
+    console.log(`Host ${response.ack ? 'ACK' : response.nack ? 'NACK' : 'ERROR'}: ${response.uri} created.`); // eslint-disable-line no-nested-ternary
+
+    return response;
+  };
+
   const messageHandler = function (message, sender, respondCallback) {
     if (sender && sender.id === MONITOR_EXTENSION_ID) {
       if (message && message.payload) {
@@ -75,8 +103,26 @@
           message.type || 'default',
           message.payload
         );
-        if (respondCallback) {
-          respondCallback({ ack: true });
+
+        if (message.type === 'monitor') {
+          constructCapture(retrieveUser(), message)
+            .then(sendToHost)
+            .then(logPostResponse)
+            .then(function () {
+              if (respondCallback) {
+                respondCallback({ ack: true });
+              }
+            })
+            .catch(function (err) {
+              console.log(err.message);
+              if (respondCallback) {
+                respondCallback({ nack: true });
+              }
+            });
+        } else {
+          if (respondCallback) {
+            respondCallback({ ack: true });
+          }
         }
       } else {
         if (respondCallback) {
@@ -85,9 +131,12 @@
       }
     } else {
       if (sender) {
-        console.log(`Message received in Main: sender.id is ${sender.id}, sender.url is ${sender.url}.`);
+        console.log(`Message received in Main from unknown extension: sender.id is ${sender.id}, sender.url is ${sender.url}.`);
       } else {
         console.log('Message received in Main with no sender.');
+      }
+      if (respondCallback) {
+        respondCallback({ nack: true });
       }
     }
 

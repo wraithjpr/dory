@@ -37,6 +37,7 @@
       }
     ],
     "no-negated-condition": "off",
+    "no-prototype-builtins": "off",
     "no-ternary": "off",
     "no-var": "off",
     "no-void": "off",
