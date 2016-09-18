@@ -15,8 +15,10 @@
   },
 
   "permissions": [
+    "geolocation",
     "identity",
     "identity.email",
+    "system.storage",
     "http://localhost:3000/"
   ]
 }

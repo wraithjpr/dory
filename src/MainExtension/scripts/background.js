@@ -10,7 +10,10 @@
   const TYPE_REDIRECT = 'redirect';
   const SEND_THESE_TO_HOST = [TYPE_BLOCK, TYPE_MONITOR, TYPE_REDIRECT];
 
+  const GEO_TIME_OUT = 5000;
+
   let profileUserInfo = null;
+  let currentPosition = null;
 
   /**
    * @summary Saves the user profile.
@@ -51,6 +54,31 @@
     });
   }
 
+  function storeLocation (position) {
+    currentPosition = position;
+
+    return currentPosition;
+  }
+
+  function retrieveLocation () {
+    return currentPosition;
+  }
+
+  const getLatitude = (position) => position && position.coords && (position.coords.latitude || void 0);
+  const getLongitude = (position) => position && position.coords && (position.coords.longitude || void 0);
+
+  function getLocation () {
+    var options = {
+      enableHighAccuracy: true,
+      timeout: GEO_TIME_OUT,
+      maximumAge: 0
+    };
+
+    return new Promise(function (resolve, reject) {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  }
+
   const formatTimeStamp = (timeStamp) => (new Date(timeStamp)).toISOString();
 
 /* eslint-disable max-len, object-shorthand */
@@ -58,6 +86,7 @@
     block: (details) => `Blacklist item intercepted and blocked: ${details.url} at ${formatTimeStamp(details.timeStamp)}: user is ${getUserEmail(retrieveUser())}`,
     monitor: (details) => `Web request of type ${details.type}: ${details.method} ${details.url} at ${formatTimeStamp(details.timeStamp)}: user is ${getUserEmail(retrieveUser())}: requestId is ${details.requestId}`,
     redirect: (details) => `Request redirected: ${details.url} at ${formatTimeStamp(details.timeStamp)}: user is ${getUserEmail(retrieveUser())}`,
+    detached: (info) => `Removable storage detached: ${info.name} at ${formatTimeStamp((new Date()).getTime())}: user is ${getUserEmail(retrieveUser())}: type is ${info.type}, capacity is ${info.capacity}, id is ${info.id}.`,
     default: function (details) {
       return typeof details === 'string' ? details : details.toString();
     }
@@ -73,7 +102,7 @@
 
   const renderItem = (type, item) => renderInConsole(formatByType[type](item));
 
-  const constructCapture = function (userInfo, message) {
+  const makeWebRequestCapture = function (userInfo, position, message) {
     const capture = {
       captureType: message.type,
       method: message.payload.method,
@@ -82,7 +111,9 @@
       dateTime: formatTimeStamp(message.payload.timeStamp),
       resourceType: message.payload.type,
       tabId: message.payload.tabId,
-      requestId: message.payload.requestId
+      requestId: message.payload.requestId,
+      latitude: getLatitude(position),
+      longitude: getLongitude(position)
     };
 
     if (message.payload.type === 'xmlhttprequest') {
@@ -118,7 +149,7 @@
         );
 
         if (SEND_THESE_TO_HOST.includes(message.type)) {
-          constructCapture(retrieveUser(), message)
+          makeWebRequestCapture(retrieveUser(), retrieveLocation(), message)
             .then(sendToHost)
             .then(logPostResponse)
             .then(function () {
@@ -161,8 +192,83 @@
     console.error(err.message);
   });
 
+  getLocation().then(storeLocation)
+  .catch(function (err) {
+    console.error(err.message);
+  });
+
   chrome.runtime.onMessageExternal.addListener(messageHandler);
-  console.log('Main extension is listening...');
+  console.log('Main extension is listening for the monitor...');
+
+  const getSystemStorageInfo = function () {
+    return new Promise(function (resolve) {
+      chrome.system.storage.getInfo(resolve);
+    });
+  };
+
+  const findStorageUnitInfo = function (id, infoArray) {
+    const info = infoArray.find((ele) => id === ele.id);
+
+    if (info) {
+      return Promise.resolve(info);
+    }
+
+    return Promise.reject(new Error(`Removable device ${id} not found in system storage info.`));
+  };
+  const findStorageUnitInfoCurried = (id) => (infoArray) => findStorageUnitInfo(id, infoArray);
+
+  const makeRemovableStorageCapture = function (userInfo, position, type, info) {
+    const capture = {
+      captureType: type,
+      userEmail: getUserEmail(userInfo),
+      dateTime: formatTimeStamp((new Date()).getTime()),
+      resourceType: info.type,
+      name: info.name,
+      capacity: info.capacity,
+      latitude: getLatitude(position),
+      longitude: getLongitude(position)
+    };
+
+    return Promise.resolve(capture);
+  };
+
+  const makeRemovableStorageCaptureCurried = (userInfo) => (position) => (type) => (info) => makeRemovableStorageCapture(userInfo, position, type, info);
+
+  const renderAndReturnItem = function (type, item) {
+    renderItem(type, item);
+
+    return item;
+  };
+
+  const renderAndReturnItemCurried = (type) => (item) => renderAndReturnItem(type, item);
+
+  const makeDetachedStorageCapture = function (userInfo, position, type, id) {
+    const findInfo = findStorageUnitInfoCurried(id);
+    const makeCapture = makeRemovableStorageCaptureCurried(userInfo)(position)(type);
+    const renderInfo = renderAndReturnItemCurried('detached');
+
+    return getSystemStorageInfo()
+      .then(findInfo)
+      .then(renderInfo)
+      .then(makeCapture);
+  };
+
+  // Our handler function for system.storage events.
+  const eventHandler = function (logger, sender, maker, whoAmI, whereAmI, type, info) {
+    maker(whoAmI(), whereAmI(), type, info)
+      .then(sender)
+      .then(logger)
+      .catch(function (err) {
+        console.log(err.message);
+      });
+  };
+  const eventHandlerCurried = (logger) => (sender) => (maker) => (whoAmI) => (whereAmI) => (type) => (info) => eventHandler(logger, sender, maker, whoAmI, whereAmI, type, info); // eslint-disable-line max-len
+  const attachedCallback = eventHandlerCurried(logPostResponse)(sendToHost)(makeRemovableStorageCapture)(retrieveUser)(retrieveLocation)('removable.storage');
+  const detachedCallback = eventHandlerCurried(logPostResponse)(sendToHost)(makeDetachedStorageCapture)(retrieveUser)(retrieveLocation)('removable.storage');
+
+  chrome.system.storage.onAttached.addListener(attachedCallback);
+  chrome.system.storage.onDetached.addListener(detachedCallback);
+  console.log('Main extension is listening for removable storage events...');
 
   return;
 }(window, document, window, chrome));

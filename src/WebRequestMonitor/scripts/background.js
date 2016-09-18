@@ -110,14 +110,14 @@
     payload
   });
 
-  // Our hendler function for BeforeRequest event.
-  const beforeRequestHandler = function (sender, maker, responses, type, details) {
+  // Our handler function for BeforeRequest event.
+  const beforeRequestHandler = function (responses, sender, maker, type, details) {
     sender(maker(type, details));
 
     return responses[type];
   };
-  const beforeRequestHandlerCurried = (sender) => (maker) => (responses) => (type) => (details) => beforeRequestHandler(sender, maker, responses, type, details); // eslint-disable-line max-len
-  const beforeRequestHandlerForType = beforeRequestHandlerCurried(sendToMain)(makeMessageFromPayload)(EVENT_RESPONSES);
+  const beforeRequestHandlerCurried = (responses) => (sender) => (maker) => (type) => (details) => beforeRequestHandler(responses, sender, maker, type, details); // eslint-disable-line max-len
+  const beforeRequestHandlerForType = beforeRequestHandlerCurried(EVENT_RESPONSES)(sendToMain)(makeMessageFromPayload);
   const beforeRequestCallbackForBlock = beforeRequestHandlerForType(TYPE_BLOCK);
   const beforeRequestCallbackForMonitor = beforeRequestHandlerForType(TYPE_MONITOR);
   const beforeRequestCallbackForRedirect = beforeRequestHandlerForType(TYPE_REDIRECT);
