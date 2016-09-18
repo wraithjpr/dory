@@ -5,6 +5,10 @@
   const MONITOR_EXTENSION_ID = 'elojbmhgmpdndbpcjnhjckkjfejleelp';
   const HOST_URL = 'http://localhost:3000/api/events/';
 
+  const TYPE_BLOCK = 'block';
+  const TYPE_MONITOR = 'monitor';
+  const TYPE_REDIRECT = 'redirect';
+  const SEND_THESE_TO_HOST = [TYPE_BLOCK, TYPE_MONITOR, TYPE_REDIRECT];
 
   let profileUserInfo = null;
 
@@ -70,7 +74,7 @@
   const renderItem = (type, item) => renderInConsole(formatByType[type](item));
 
   const constructCapture = function (userInfo, message) {
-    return Promise.resolve({
+    const capture = {
       captureType: message.type,
       method: message.payload.method,
       url: message.payload.url,
@@ -79,14 +83,20 @@
       resourceType: message.payload.type,
       tabId: message.payload.tabId,
       requestId: message.payload.requestId
-    });
+    };
+
+    if (message.payload.type === 'xmlhttprequest') {
+      if (message.payload.requestBody) {
+        console.log(`We have an xhr body for a ${message.payload.method}: ${JSON.stringify(message.payload.requestBody, null, 2)}`);
+        // { "raw": [{ "bytes": { <<This is an ArrayBuffer object with a copy of the data>> } }] }
+        capture.body = message.payload.requestBody;
+      }
+    }
+
+    return Promise.resolve(capture);
   };
 
-  const postJSONCurried = function (url) {
-    return function (body) {
-      return global.$JPW$.webApiUtils.postJSON(url, body);
-    };
-  };
+  const postJSONCurried = (url) => (body) => global.$JPW$.webApiUtils.postJSON(url, body);
 
   const sendToHost = postJSONCurried(HOST_URL);
 
@@ -96,6 +106,9 @@
     return response;
   };
 
+  // Our receiver function
+  // NB. The message.payload.requestBody.raw[0].bytes is an instance of a plain Object here.
+  // On sending in the monitor extension it is an empty instance of ArrayBuffer. The array buffer data is lost in transmission.
   const messageHandler = function (message, sender, respondCallback) {
     if (sender && sender.id === MONITOR_EXTENSION_ID) {
       if (message && message.payload) {
@@ -104,7 +117,7 @@
           message.payload
         );
 
-        if (message.type === 'monitor') {
+        if (SEND_THESE_TO_HOST.includes(message.type)) {
           constructCapture(retrieveUser(), message)
             .then(sendToHost)
             .then(logPostResponse)

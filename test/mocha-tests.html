@@ -1,0 +1,26 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mocha/3.0.2/mocha.min.css" />
+</head>
+<body>
+  <div id="mocha"></div>
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mocha/3.0.2/mocha.min.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/chai/3.5.0/chai.min.js"></script>
+  <script src="../third_party_modules/chai-as-promised.js"></script>
+
+  <script>
+    mocha.globals(['jQuery']);
+    mocha.setup('bdd');
+    const expect = chai.expect;
+  </script>
+  <script src="./try-out/01-typed-arrays.js"></script>
+  <script>
+    mocha.checkLeaks();
+    mocha.run();
+  </script>
+</body>
+</html>

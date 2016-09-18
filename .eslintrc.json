@@ -2,12 +2,13 @@
   "env": {
     "browser": true,
     "es6": true,
-    "mocha": false,
+    "mocha": true,
     "mongo": false,
     "node": false
   },
   "globals": {
-    "chrome": true
+    "chrome": true,
+    "expect": true
   },
   "extends": "eslint:all",
   "rules": {
@@ -15,10 +16,11 @@
     "dot-location": ["error", "property"],
     "func-names": ["error", "never"],
     "func-style": "off",
+    "id-length": ["error", { "max": 32, "exceptions": ["a", "b", "c", "i", "j", "k", "x", "y", "z"] }],
     "indent": ["error", 2],
     "linebreak-style": ["error", "windows"],
     "max-len": ["error", 160],
-    "max-params": ["error", 4],
+    "max-params": ["error", 5],
     "max-statements": ["error", 15, { "ignoreTopLevelFunctions": true }],
     "multiline-ternary": "off",
     "newline-after-var": ["error", "always"],
@@ -32,11 +34,12 @@
       {
         "detectObjects": true,
         "enforceConst": true,
-        "ignore": [0, 1],
+        "ignore": [-1, 0, 1, 2],
         "ignoreArrayIndexes": true
       }
     ],
     "no-negated-condition": "off",
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "no-prototype-builtins": "off",
     "no-ternary": "off",
     "no-var": "off",
@@ -46,6 +49,7 @@
     "one-var": ["error", "never"],
     "padded-blocks": ["error", "never"],
     "prefer-arrow-callback": "off",
+    "prefer-reflect": "off",
     "quote-props": ["error", "consistent-as-needed"],
     "quotes": ["error", "single"],
     "require-jsdoc": ["error", {
