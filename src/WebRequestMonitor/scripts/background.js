@@ -37,6 +37,7 @@
   };
 
   const BLACK_LIST = [
+    '*://www.dropbox.com/*',
     '*://twitter.com/*'
   ];
 
