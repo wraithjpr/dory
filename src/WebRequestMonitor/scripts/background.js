@@ -22,22 +22,41 @@
   ];
 
   const OPTIONS_BLOCK = ['blocking'];
+  const OPTIONS_BODY = ['requestBody'];
 
   const SECURUS_URL = 'http://www.securus-software.com/';
-  const REDIRECT_TO_SECURUS_RESPONSE = { redirectUrl: SECURUS_URL };
-  const BLOCK_RESPONSE = { cancel: true };
+
+  const TYPE_BLOCK = 'block';
+  const TYPE_MONITOR = 'monitor';
+  const TYPE_REDIRECT = 'redirect';
+
+  const EVENT_RESPONSES = {
+    block: { cancel: true },
+    monitor: null,
+    redirect: { redirectUrl: SECURUS_URL }
+  };
 
   const BLACK_LIST = [
+    '*://www.dropbox.com/*',
     '*://twitter.com/*'
+  ];
+
+  const REDIRECT_LIST = [
+    '*://www.facebook.com/*'
   ];
 
   const listenAllFilter = {
     urls: ['<all_urls>'],
-    types: ['image', 'main_frame', 'object', 'other', 'sub_frame', 'xmlhttprequest']
+    types: ['image', 'main_frame', 'object', 'other', 'sub_frame']
   };
 
-  const redirectFacebookFilter = {
-    urls: ['*://www.facebook.com/*'],
+  const listenXHRFilter = {
+    urls: ['<all_urls>'],
+    types: ['xmlhttprequest']
+  };
+
+  const redirectFilter = {
+    urls: REDIRECT_LIST,
     types: ['main_frame']
   };
 
@@ -46,7 +65,8 @@
     types: RESOURCE_TYPES_ENUM
   };
 
-  const responseCallback = function (response) {
+  // Our callback function
+  const mainResponseCallback = function (response) {
     if (response) {
       console.log(`${response.ack ? 'ACK' : response.nack ? 'NACK' : 'ERROR'}`);  // eslint-disable-line no-nested-ternary
     } else {
@@ -60,41 +80,53 @@
     return;
   };
 
+  // Our sender function
+  // NB. The message.payload.requestBody.raw[0].bytes is an instance of ArrayBuffer here.
+  // On receipt in the main extension it is an empty instance of a plain Object. The array buffer data is lost in transmission.
+  // See https://developers.chrome.com/extensions/runtime#method-sendMessage - the message should be a JSON-ifiable object.
+  // An ArrayBuffer is not JSON-ifiable. So we convert it to a string using the technique given here:
+  // https://developers.google.com/web/updates/2012/06/How-to-convert-ArrayBuffer-to-and-from-String?hl=en
   const sendToMain = function (message) {
-    chrome.runtime.sendMessage(MAIN_EXTENSION_ID, message, responseCallback);
+    const body = message.payload.requestBody;
+
+    if (body && body.raw && Array.isArray(body.raw) && body.raw.length > 0) {
+      body.raw = body.raw.map(function (uploadData) {
+        if (uploadData.bytes && uploadData.bytes instanceof ArrayBuffer) {
+          // return String.fromCharCode.apply(null, new Uint16Array(uploadData.bytes));
+          return String.fromCharCode.apply(null, new Uint8Array(uploadData.bytes));
+        }
+
+        return uploadData;
+      });
+    }
+
+    chrome.runtime.sendMessage(MAIN_EXTENSION_ID, message, mainResponseCallback);
 
     return message;
   };
 
+  // Our maker function
   const makeMessageFromPayload = (type, payload) => ({
     type,
     payload
   });
-  const makeBlockMessage = (payload) => makeMessageFromPayload('block', payload);
-  const makeRedirectMessage = (payload) => makeMessageFromPayload('redirect', payload);
-  const makeMonitorMessage = (payload) => makeMessageFromPayload('monitor', payload);
 
-  const listenAllCallback = function (details) {
-    sendToMain(makeMonitorMessage(details));
+  // Our handler function for BeforeRequest event.
+  const beforeRequestHandler = function (responses, sender, maker, type, details) {
+    sender(maker(type, details));
 
-    return null;
+    return responses[type];
   };
+  const beforeRequestHandlerCurried = (responses) => (sender) => (maker) => (type) => (details) => beforeRequestHandler(responses, sender, maker, type, details); // eslint-disable-line max-len
+  const beforeRequestHandlerForType = beforeRequestHandlerCurried(EVENT_RESPONSES)(sendToMain)(makeMessageFromPayload);
+  const beforeRequestCallbackForBlock = beforeRequestHandlerForType(TYPE_BLOCK);
+  const beforeRequestCallbackForMonitor = beforeRequestHandlerForType(TYPE_MONITOR);
+  const beforeRequestCallbackForRedirect = beforeRequestHandlerForType(TYPE_REDIRECT);
 
-  const redirectFacebookCallback = function (details) {
-    sendToMain(makeRedirectMessage(details));
-
-    return REDIRECT_TO_SECURUS_RESPONSE;
-  };
-
-  const blockBlacklistCallback = function (details) {
-    sendToMain(makeBlockMessage(details));
-
-    return BLOCK_RESPONSE;
-  };
-
-  chrome.webRequest.onBeforeRequest.addListener(listenAllCallback, listenAllFilter);
-  chrome.webRequest.onBeforeRequest.addListener(redirectFacebookCallback, redirectFacebookFilter, OPTIONS_BLOCK);
-  chrome.webRequest.onBeforeRequest.addListener(blockBlacklistCallback, blockBlacklistFilter, OPTIONS_BLOCK);
+  chrome.webRequest.onBeforeRequest.addListener(beforeRequestCallbackForMonitor, listenAllFilter);
+  chrome.webRequest.onBeforeRequest.addListener(beforeRequestCallbackForMonitor, listenXHRFilter, OPTIONS_BODY);
+  chrome.webRequest.onBeforeRequest.addListener(beforeRequestCallbackForRedirect, redirectFilter, OPTIONS_BLOCK);
+  chrome.webRequest.onBeforeRequest.addListener(beforeRequestCallbackForBlock, blockBlacklistFilter, OPTIONS_BLOCK);
 
   // Say hello to the main extension
   sendToMain({ payload: 'Hello there, Main!... from The Monitor' });

@@ -10,12 +10,15 @@
   },
 
   "background": {
-    "scripts": ["./scripts/background.js"],
+    "scripts": ["./scripts/web-api-utils.js", "./scripts/background.js"],
     "persistent": false
   },
 
   "permissions": [
+    "geolocation",
     "identity",
-    "identity.email"
+    "identity.email",
+    "system.storage",
+    "http://localhost:3000/"
   ]
 }
